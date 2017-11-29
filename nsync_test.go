@@ -3,13 +3,13 @@ package nsync
 import (
 	"testing"
 
-	"golang.org/x/sync/errgroup"
+	"sync"
 )
 
 func TestMutex_Lock(t *testing.T) {
 	var (
 		nmux Mutex
-		eg   errgroup.Group
+		wg   sync.WaitGroup
 		a    int
 		b    int
 		c    int
@@ -18,7 +18,9 @@ func TestMutex_Lock(t *testing.T) {
 	nameStr := []string{"a", "b", "a", "a", "c", "c", "b"}
 	for _, name := range nameStr {
 		name := name
-		eg.Go(func() error {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			nmux.Lock(name)
 			defer nmux.Unlock(name)
 
@@ -30,29 +32,29 @@ func TestMutex_Lock(t *testing.T) {
 			case "c":
 				c++
 			}
-			return nil
-		})
+		}()
 	}
 	nameInt := []int{1, 2, 3, 2, 1, 1}
 	for _, name := range nameInt {
 		name := name
-		eg.Go(func() error {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 			nmux.Lock(name)
 			defer nmux.Unlock(name)
-			return nil
-		})
+		}()
 	}
 
-	eg.Wait()
+	wg.Wait()
 
 	if a != 3 {
 		t.Errorf("Expected a:3, got %v", a)
 	}
 	if b != 2 {
-		t.Errorf("Expected b:2, got %v", a)
+		t.Errorf("Expected b:2, got %v", b)
 	}
 	if c != 2 {
-		t.Errorf("Expected c:2, got %v", a)
+		t.Errorf("Expected c:2, got %v", c)
 	}
 }
 
